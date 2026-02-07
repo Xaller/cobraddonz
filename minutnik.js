@@ -1,3 +1,14 @@
+// ==UserScript==
+// @name          Minutnik
+// @namespace     http://tampermonkey.net/
+// @version       2026-02-07-v3
+// @description   Minutnik borzy do Gargonum - Nagłówek pokazuje też potwory 0:00
+// @author        Dziadek kselur
+// @match         https://*.margonem.pl/
+// @icon          https://rajdensaddons.pl/logo.png
+// @grant         none
+// ==/UserScript==
+
 (function () {
     'use strict';
 
