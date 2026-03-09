@@ -1,6 +1,146 @@
 (function() {
     'use strict';
 
+    // ==========================================
+    // 1. CONFIG CSS - TUTAJ EDYTUJ WYGLĄD
+    // ==========================================
+    const css = `
+        /* Główny kontener panelu */
+        #ab_container {
+            position: absolute; 
+            z-index: 9999;
+            width: 170px; 
+            background: #000000ad;
+            color: #eee;
+            border-radius: 8px;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            backdrop-filter: blur(2px);
+            /* Twój charakterystyczny cień z paczki CobrAddonz */
+            box-shadow: 0 0 0 1px #010101, 
+                        0 0 0 2px #5600b4, 
+                        0 0 0 3px #0c0d0d, 
+                        2px 2px 3px 3px #0c0d0d66, 
+                        0 0 5px 0px black;
+            user-select: none;
+        }
+
+        /* Nagłówek panelu */
+        #ab_header {
+            padding: 8px; 
+            font-size: 10px; 
+            font-weight: bold;
+            cursor: move; 
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; 
+            justify-content: space-between;
+            letter-spacing: 1px; 
+            color: #4a90e2;
+        }
+
+        /* Pola input */
+        #ab_input {
+            width: 100%; 
+            background: rgba(0,0,0,0.5); 
+            border: 1px solid #333;
+            color: #fff; 
+            padding: 5px; 
+            font-size: 11px; 
+            margin-bottom: 8px;
+            box-sizing: border-box; 
+            border-radius: 4px;
+        }
+
+        /* Siatki ikon i przycisków */
+        #ab_icons_wrapper {
+            display: grid; 
+            grid-template-columns: repeat(4, 32px); 
+            gap: 6px; 
+            margin-bottom: 10px; 
+            justify-content: center;
+        }
+
+        #ab_clan_wrapper {
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 4px; 
+            margin-bottom: 12px;
+        }
+
+        /* Sloty na przedmioty (błoga z torby) */
+        .ab_item_slot {
+            width: 32px; 
+            height: 32px; 
+            cursor: pointer;
+            background: rgba(0,0,0,0.4);
+            box-shadow: inset 0 0 5px #000;
+            border-radius: 4px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: 0.2s; 
+            border: 1px solid transparent;
+        }
+        .ab_item_slot.selected { 
+            border-color: #5600b4; 
+            box-shadow: 0 0 8px #5600b4; 
+        }
+        .ab_item_slot canvas { scale: 0.8; }
+
+        /* Przyciski klanowe */
+        .ab_clan_btn {
+            cursor: pointer; 
+            background: rgba(0,0,0,0.5);
+            font-size: 11px; 
+            padding: 5px 0; 
+            text-align: center;
+            border-radius: 3px; 
+            border: 1px solid #222; 
+            transition: 0.2s;
+            color: #ccc;
+        }
+        .ab_clan_btn.selected { 
+            border-color: #5600b4; 
+            color: #5600b4; 
+            font-weight: bold; 
+        }
+
+        /* Główny przycisk przełącznika */
+        #ab_toggle {
+            width: 100%; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid #444; 
+            color: #888; 
+            padding: 8px; 
+            font-weight: bold; 
+            font-size: 10px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            transition: 0.3s;
+        }
+
+        /* Styl, gdy AUTO-BLESS jest aktywny */
+        #ab_toggle.active {
+            background: rgba(46, 125, 50, 0.4) !important;
+            color: #2ecc71 !important;
+            border-color: #2ecc71;
+            box-shadow: inset 0 0 10px rgba(46, 125, 50, 0.5);
+            animation: ab_pulse 2s infinite;
+        }
+
+        @keyframes ab_pulse {
+            0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; }
+        }
+    `;
+
+    // Wstrzyknięcie stylów do dokumentu
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = css;
+    document.head.appendChild(styleSheet);
+
+    // ==========================================
+    // 2. LOGIKA SKRYPTU
+    // ==========================================
     const CLAN_TOOLTIPS = {
         1: "Pancerz", 2: "SA", 3: "Lowkryt x2 / SA",
         4: "Życie x2", 5: "Niszcz. pancerza / Odp.",
@@ -15,70 +155,11 @@
         MIN: 'margo_bless_minimized'
     };
 
-    // --- DOPASOWANIE DO COBRADDONZ ---
-    const THEME = {
-        bg: '#000000ad',
-        accent: '#5600b4', // Twój fioletowy kolor przewodzący
-        shadow: '0 0 0 1px #010101, 0 0 0 2px #5600b4, 0 0 0 3px #0c0d0d, 2px 2px 3px 3px #0c0d0d66, 0 0 5px 0px black',
-        text: '#eee'
-    };
-
     let targetBlessName = localStorage.getItem(STORAGE.NAME) || "";
     let targetClanOpt = localStorage.getItem(STORAGE.CLAN) || "";
     let isActive = localStorage.getItem(STORAGE.STATE) === 'true';
     let isMinimized = localStorage.getItem(STORAGE.MIN) === 'true';
     let pos = JSON.parse(localStorage.getItem(STORAGE.POS)) || { x: 100, y: 100 };
-
-    const style = document.createElement('style');
-    style.innerHTML = `
-        #ab_container {
-            position: absolute; z-index: 9999;
-            background: ${THEME.bg};
-            box-shadow: ${THEME.shadow};
-            border-radius: 8px;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            width: 170px; color: ${THEME.text};
-            backdrop-filter: blur(2px);
-        }
-        #ab_header {
-            padding: 8px; font-size: 10px; font-weight: bold;
-            cursor: move; text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex; justify-content: space-between;
-            letter-spacing: 1px; color: #4a90e2;
-        }
-        .ab_btn_active {
-            background: rgba(46, 125, 50, 0.4) !important;
-            color: #2ecc71 !important;
-            box-shadow: inset 0 0 10px rgba(46, 125, 50, 0.5);
-            animation: ab_pulse 2s infinite;
-        }
-        @keyframes ab_pulse {
-            0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; }
-        }
-        .ab_item_slot {
-            width: 32px; height: 32px; cursor: pointer;
-            background: rgba(0,0,0,0.4);
-            box-shadow: inset 0 0 5px #000;
-            border-radius: 4px; display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; border: 1px solid transparent;
-        }
-        .ab_item_slot.selected { border-color: ${THEME.accent}; box-shadow: 0 0 8px ${THEME.accent}; }
-        
-        .ab_clan_btn {
-            cursor: pointer; background: rgba(0,0,0,0.5);
-            font-size: 11px; padding: 5px 0; text-align: center;
-            border-radius: 3px; border: 1px solid #222; transition: 0.2s;
-        }
-        .ab_clan_btn.selected { border-color: ${THEME.accent}; color: ${THEME.accent}; font-weight: bold; }
-        
-        #ab_input {
-            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #333;
-            color: #fff; padding: 5px; font-size: 11px; margin-bottom: 8px;
-            box-sizing: border-box; border-radius: 4px;
-        }
-    `;
-    document.head.appendChild(style);
 
     function instantUse() {
         if (!isActive) return;
@@ -101,7 +182,6 @@
         }
     }
 
-    // Hook pod komunikację
     const originalOnMessage = window.Engine.communication.onMessageWebSocket;
     window.Engine.communication.onMessageWebSocket = function(event) {
         if (isActive) {
@@ -117,10 +197,10 @@
         const btn = document.getElementById('ab_toggle');
         if (!btn) return;
         if (isActive) {
-            btn.classList.add('ab_btn_active');
+            btn.classList.add('active');
             btn.innerText = 'WŁĄCZONE (AUTO)';
         } else {
-            btn.classList.remove('ab_btn_active');
+            btn.classList.remove('active');
             btn.innerText = 'WYŁĄCZONE';
         }
     }
@@ -144,13 +224,10 @@
             </div>
             <div id="ab_content" style="padding: 10px; display: ${isMinimized ? 'none' : 'block'};">
                 <input type="text" id="ab_input" value="${targetBlessName}" placeholder="Nazwa błoga...">
-                
-                <div id="ab_icons_wrapper" style="display: grid; grid-template-columns: repeat(4, 32px); gap: 6px; margin-bottom: 10px; justify-content: center;"></div>
-
+                <div id="ab_icons_wrapper"></div>
                 <div style="font-size: 9px; text-align: center; margin-bottom: 6px; color: #888; text-transform: uppercase;">Klanowe</div>
-                <div id="ab_clan_wrapper" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 12px;"></div>
-
-                <button id="ab_toggle" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #888; padding: 8px; font-weight: bold; font-size: 10px; cursor: pointer; border-radius: 4px; transition: 0.3s;"></button>
+                <div id="ab_clan_wrapper"></div>
+                <button id="ab_toggle"></button>
             </div>
         `;
 
@@ -163,7 +240,7 @@
             for (let i = 1; i <= 7; i++) {
                 const isSel = targetClanOpt === String(i);
                 const btn = document.createElement('div');
-                btn.className = `ab_clan_btn ${isSel ? 'selected' : ''}`;
+                btn.className = 'ab_clan_btn' + (isSel ? ' selected' : '');
                 btn.title = CLAN_TOOLTIPS[i];
                 btn.innerText = i;
                 btn.onclick = () => {
@@ -191,14 +268,13 @@
                 const item = blessings.find(b => b.name === name);
                 const isSel = targetBlessName === name;
                 const slot = document.createElement('div');
-                slot.className = `ab_item_slot ${isSel ? 'selected' : ''}`;
+                slot.className = 'ab_item_slot' + (isSel ? ' selected' : '');
                 
                 if (!item.$canvasIcon && window.Engine.items?.renderItem) window.Engine.items.renderItem(item);
                 if (item.$canvasIcon && item.$canvasIcon[0]) {
                     const icon = document.createElement('canvas');
                     icon.width = 32; icon.height = 32;
                     icon.getContext('2d').drawImage(item.$canvasIcon[0], 0, 0);
-                    icon.style.scale = "0.8";
                     slot.appendChild(icon);
                 }
 
@@ -215,7 +291,6 @@
             });
         };
 
-        // Handlery
         const header = document.getElementById('ab_header');
         header.querySelector('#ab_minimize').onclick = () => {
             isMinimized = !isMinimized;
@@ -230,7 +305,6 @@
             updateBtn();
         };
 
-        // Przeciąganie
         let isDragging = false, offset = { x: 0, y: 0 };
         header.onmousedown = (e) => {
             isDragging = true;
