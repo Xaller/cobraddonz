@@ -6,59 +6,52 @@
     // ==========================================
     const css = `
         /* Główny kontener panelu */
-        #ab_container {
-            position: absolute; 
-            z-index: 9999;
-            width: 170px; 
-            background: #000000ad;
-            color: #eee;
-            border-radius: 8px;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            backdrop-filter: blur(2px);
-            /* Twój charakterystyczny cień z paczki CobrAddonz */
-            box-shadow: 0 0 0 1px #010101, 
-                        0 0 0 2px #5600b4, 
-                        0 0 0 3px #0c0d0d, 
-                        2px 2px 3px 3px #0c0d0d66, 
-                        0 0 5px 0px black;
-            user-select: none;
-        }
+#ab_container {
+    position: absolute;
+    z-index: 9999;
+    width: 229px;
+    background: #000000ad;
+    color: #eee;
+    border-radius: 4px;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    backdrop-filter: blur(2px);
+    box-shadow: 0 0 0 1px #010101,                         0 0 0 2px #5600b4,                         0 0 0 3px #0c0d0d,                         2px 2px 3px 3px #0c0d0d66,                         0 0 5px 0px black;
+    user-select: none;
+}
 
-        /* Nagłówek panelu */
-        #ab_header {
-            padding: 8px; 
-            font-size: 10px; 
-            font-weight: bold;
-            cursor: move; 
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex; 
-            justify-content: space-between;
-            letter-spacing: 1px; 
-            color: #4a90e2;
-        }
+#ab_header {
+    padding: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: move;
+    text-align: center;
+    border-bottom: 1px solid #5600b4;
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 1px;
+    color: #9f9f9f;
+}
 
-        /* Pola input */
-        #ab_input {
-            width: 100%; 
-            background: rgba(0,0,0,0.5); 
-            border: 1px solid #333;
-            color: #fff; 
-            padding: 5px; 
-            font-size: 11px; 
-            margin-bottom: 8px;
-            box-sizing: border-box; 
-            border-radius: 4px;
-        }
+#ab_input {
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #5600b4;
+    color: #fff;
+    padding: 5px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+    border-radius: 4px;
+}
 
         /* Siatki ikon i przycisków */
-        #ab_icons_wrapper {
-            display: grid; 
-            grid-template-columns: repeat(4, 32px); 
-            gap: 6px; 
-            margin-bottom: 10px; 
-            justify-content: center;
-        }
+#ab_icons_wrapper {
+    display: grid;
+    grid-template-columns: repeat(5, 37px);
+    gap: 6px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
 
         #ab_clan_wrapper {
             display: grid; 
@@ -69,6 +62,7 @@
 
         /* Sloty na przedmioty (błoga z torby) */
         .ab_item_slot {
+            border: 1px solid #5600b4;
             width: 32px; 
             height: 32px; 
             cursor: pointer;
@@ -225,7 +219,7 @@
             <div id="ab_content" style="padding: 10px; display: ${isMinimized ? 'none' : 'block'};">
                 <input type="text" id="ab_input" value="${targetBlessName}" placeholder="Nazwa błoga...">
                 <div id="ab_icons_wrapper"></div>
-                <div style="font-size: 9px; text-align: center; margin-bottom: 6px; color: #888; text-transform: uppercase;">Klanowe</div>
+                <div style="font-size: 9px;text-align: center;margin-bottom: 6px;color: #9f9f9f;text-transform: uppercase;font-weight: bold;letter-spacing: 2px;">Klanowe</div>
                 <div id="ab_clan_wrapper"></div>
                 <button id="ab_toggle"></button>
             </div>
