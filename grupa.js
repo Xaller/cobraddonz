@@ -1,7 +1,6 @@
 (function() {
     'use strict';
 
-    // Style zostają bez zmian (są poprawne)
     const style = document.createElement('style');
     style.innerHTML = `
         @keyframes stasis-incoming-glow {
@@ -11,6 +10,7 @@
         }
         .stasis-alert-incoming { animation: stasis-incoming-glow 1.2s infinite !important; border: 1px solid crimson !important; }
         .stasis-alert-active { background: rgba(0, 100, 200, 0.25) !important; border: 1px solid #0f6ffe !important; }
+        .prof-header { color: #efd332; font-size: 10px; font-weight: bold; margin: 6px 0 2px 0; padding: 2px; background: rgba(255,255,255,0.05); text-align:center; text-transform: uppercase; pointer-events: none; }
     `;
     document.head.appendChild(style);
 
@@ -27,7 +27,7 @@
         const listContainer = document.querySelector('.whoishere-window .player-list');
         if (!listContainer) return;
 
-        // Pobieramy graczy i filtrujemy, żeby nie brać nagłówków profesji jako graczy
+        // Pobieramy tylko realnych graczy (pomijamy nasze dodane nagłówki)
         const players = Array.from(listContainer.querySelectorAll('.one-other'));
         if (players.length === 0) return;
 
@@ -37,48 +37,44 @@
         };
 
         players.forEach(player => {
-            // Staza - logika zostaje, bo jest OK
+            // Obsługa stazy
             const incoming = player.querySelector('.stasis-incoming');
             player.classList.toggle('stasis-alert-incoming', !!(incoming && incoming.classList.contains('active')));
 
             const stasis = player.querySelector('.stasis');
             player.classList.toggle('stasis-alert-active', !!(stasis && stasis.classList.contains('active')));
 
-            // --- POPRAWKA PROFESJI ---
+            // Wyciąganie profesji z formatu (123h) lub 123h
             const lvlEl = player.querySelector('.lvl');
             let profName = 'Inni';
 
             if (lvlEl) {
                 const text = lvlEl.innerText.toLowerCase().trim();
-                // Wyciągamy ostatnią literę, która jest literą (nie cyfrą)
-                const match = text.match(/[a-z]$/); 
-                const short = match ? match[0] : '';
+                // Szukamy litery, która jest przed końcem ciągu lub przed nawiasem zamykającym
+                const match = text.match(/([a-z])(?=\)?$)/);
+                const short = match ? match[1] : '';
                 profName = PROF_MAP[short] || 'Inni';
             }
             
             groups[profName].push(player);
         });
 
-        // Czyścimy listę i budujemy od nowa
+        // Czyścimy i przebudowujemy listę
         listContainer.innerHTML = '';
 
-        Object.keys(groups).forEach(name => {
-            const members = groups[name];
+        for (const [name, members] of Object.entries(groups)) {
             if (members.length > 0) {
                 const header = document.createElement('div');
-                header.className = 'prof-header'; // Dodana klasa dla porządku
-                header.style.cssText = 'color: #efd332; font-size: 10px; font-weight: bold; margin: 6px 0 2px 0; padding: 2px; background: rgba(255,255,255,0.05); text-align:center; text-transform: uppercase;';
+                header.className = 'prof-header';
                 header.innerText = `— ${name} (${members.length}) —`;
                 listContainer.appendChild(header);
 
                 members.forEach(m => listContainer.appendChild(m));
             }
-        });
+        }
     }
 
-    // Observer i interwał zostają - są potrzebne do reakcji na zmiany w grze
-    const observer = new MutationObserver((mutations) => {
-        // Blokujemy zapętlenie: rozłączamy, robimy zmiany, łączymy ponownie
+    const observer = new MutationObserver(() => {
         observer.disconnect();
         sortWhoIsHere();
         startObserving();
@@ -87,7 +83,8 @@
     function startObserving() {
         const target = document.querySelector('.whoishere-window .player-list');
         if (target) {
-            observer.observe(target, { childList: true, subtree: false });
+            // Obserwujemy tylko zmiany w dzieciach (wejście/wyjście gracza)
+            observer.observe(target, { childList: true });
         }
     }
 
