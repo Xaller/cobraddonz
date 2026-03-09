@@ -1,33 +1,42 @@
 (function() {
     const STORAGE_KEY = 'custom_search_window_pos';
     
-    // 1. Stylizacja (dodana animacja i klasa podświetlenia)
+    // 1. Stylizacja
     if (!document.getElementById('search-styles')) {
         const style = document.createElement('style');
         style.id = 'search-styles';
         style.innerHTML = `
             #search-window {
-                position: absolute; width: 240px; background: rgba(0, 0, 0, 0.85);
+                position: absolute; width: 240px; background: rgba(0, 0, 0, 0.9);
                 border: 2px solid #cebb9d; color: #fff; z-index: 9999;
-                font-family: Arial; border-radius: 4px; box-shadow: 0 0 10px #000;
+                font-family: Arial; border-radius: 4px; box-shadow: 0 0 15px #000;
             }
             #search-header {
                 padding: 6px; cursor: move; background: #3e2723;
                 text-align: center; font-size: 11px; border-bottom: 1px solid #cebb9d;
+                text-transform: uppercase; letter-spacing: 1px;
             }
             #search-input {
                 width: 90%; margin: 8px 5%; background: #1a1a1a;
-                border: 1px solid #cebb9d; color: #fff; padding: 4px;
+                border: 1px solid #cebb9d; color: #fff; padding: 6px;
+                outline: none;
             }
-            /* Animacja pulsowania */
-            @keyframes pulse-highlight {
-                0% { box-shadow: inset 0 0 4px #fbff00; outline: 2px solid #fbff00; }
-                50% { box-shadow: inset 0 0 20px #ffae00; outline: 3px solid #ffae00; }
-                100% { box-shadow: inset 0 0 4px #fbff00; outline: 2px solid #fbff00; }
+            
+            /* Klasa przyciemniająca wszystko inne */
+            .search-dimmed {
+                opacity: 0.2 !important;
+                filter: grayscale(80%);
+                transition: opacity 0.3s ease;
+                pointer-events: none; /* Opcjonalnie: blokuje klikanie w przyciemnione */
             }
+
+            /* Klasa podświetlenia dla znalezionych przedmiotów */
             .search-highlight-active {
-                animation: pulse-highlight 0.8s infinite !important;
-                z-index: 999 !important;
+                opacity: 1 !important;
+                filter: grayscale(0%) !important;
+                outline: 2px solid #ffae00 !important;
+                box-shadow: 0 0 15px #ffae00 !important;
+                z-index: 1000 !important;
                 position: relative;
             }
         `;
@@ -36,7 +45,7 @@
 
     // 2. Tworzenie okna
     let win = document.getElementById('search-window');
-    if (win) win.remove(); // Re-init przy przeładowaniu skryptu
+    if (win) win.remove();
 
     win = document.createElement('div');
     win.id = 'search-window';
@@ -45,8 +54,8 @@
     win.style.top = savedPos.y + 'px';
 
     win.innerHTML = `
-        <div id="search-header">WYSZUKIWARKA EQ</div>
-        <input type="text" id="search-input" placeholder="Wpisz nazwę...">
+        <div id="search-header">Wyszukiwarka EQ</div>
+        <input type="text" id="search-input" placeholder="Szukaj przedmiotu...">
     `;
     document.body.appendChild(win);
 
@@ -56,43 +65,45 @@
     input.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         
-        // Czyść stare podświetlenia
-        document.querySelectorAll('.search-highlight-active').forEach(el => {
-            el.classList.remove('search-highlight-active');
+        // Selektory slotów/przedmiotów (dostosowane do najczęstszych silników gier 2D)
+        const allItems = document.querySelectorAll('.item, .bag-slot, [data-id]');
+
+        // Reset stanu
+        allItems.forEach(el => {
+            el.classList.remove('search-dimmed', 'search-highlight-active');
         });
 
         if (query.length < 3) return;
 
-        // Pobranie przedmiotów z silnika
+        // Przyciemnij wszystko na start
+        allItems.forEach(el => el.classList.add('search-dimmed'));
+
+        // Pobranie danych z silnika gry
+        if (!window.Engine || !window.Engine.heroEquipment) return;
         const bag = window.Engine.heroEquipment.getHItems();
-        console.log("Szukam:", query); // Debug w konsoli (F12)
 
         Object.values(bag).forEach(item => {
-            // Sprawdzenie czy item ma metodę getName i czy pasuje
             const itemName = item.getName ? item.getName().toLowerCase() : "";
             
             if (itemName.includes(query)) {
-                console.log("Znaleziono przedmiot:", itemName, "ID:", item.id);
-                
-                // Szukanie elementu w DOM po ID przedmiotu (najskuteczniejsze)
-                // Większość silników gier daje [data-id] lub id="item-12345"
+                // Znajdź element w DOM
                 const itemEl = document.querySelector(`[data-id="${item.id}"], .item-id-${item.id}, #item${item.id}`);
                 
                 if (itemEl) {
+                    itemEl.classList.remove('search-dimmed');
                     itemEl.classList.add('search-highlight-active');
-                    // Próba podświetlenia też rodzica (slotu), jeśli element itemu jest w środku
-                    if (itemEl.parentElement) itemEl.parentElement.classList.add('search-highlight-active');
-                } else {
-                    // Próba po lokacji (bag-X-slot)
-                    // item.loc to zazwyczaj numer slotu
-                    const slot = document.querySelector(`.bag-slot[data-slot="${item.loc}"], .slot${item.loc}`);
-                    if (slot) slot.classList.add('search-highlight-active');
+                    
+                    // Jeśli przedmiot jest wewnątrz slotu, slot też musi być jasny
+                    if (itemEl.parentElement) {
+                        itemEl.parentElement.classList.remove('search-dimmed');
+                        itemEl.parentElement.classList.add('search-highlight-active');
+                    }
                 }
             }
         });
     });
 
-    // 4. Przeciąganie
+    // 4. Przeciąganie okna
     let dragging = false, relX, relY;
     const header = document.getElementById('search-header');
     
@@ -113,5 +124,5 @@
 
     window.onmouseup = () => dragging = false;
 
-    console.log("Skrypt wyszukiwarki załadowany!");
+    console.log("Skrypt 'Focus Search' gotowy.");
 })();
