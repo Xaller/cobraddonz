@@ -5,7 +5,7 @@
     const styles = `
         #clan-pro-panel {
             position: fixed;
-            width: 280px; /* Zwiększony, by pomieścić lvl+prof i mapę */
+            width: 300px; /* Nieco zwiększony dla przycisku + */
             max-height: 400px;
             background: #000000ad;
             color: #eee;
@@ -38,51 +38,25 @@
             transition: transform 0.2s;
         }
         #clan-pro-refresh:hover { transform: rotate(90deg); color: #fff; }
-
-#clan-pro-content {
-    padding: 5px;
-    overflow-y: auto;
-    flex-grow: 1;
-    font-size: 11px;
-}
-
-.clan-member-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2px;
-    padding-bottom: 0px;
-    border-bottom: none;
-}
-
-        .clan-member-left {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-            overflow: hidden;
-            white-space: nowrap;
+        #clan-pro-content { padding: 5px; overflow-y: auto; flex-grow: 1; font-size: 11px; }
+        .clan-member-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+        .clan-member-left { display: flex; gap: 4px; align-items: center; overflow: hidden; white-space: nowrap; }
+        .clan-nick { color: beige; font-weight: 500; cursor: pointer; text-overflow: ellipsis; overflow: hidden; }
+        
+        /* Styl przycisku PARTY */
+        .clan-party-inv {
+            color: #0f0;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 4px;
+            padding: 0 2px;
         }
+        .clan-party-inv:hover { color: #fff; }
 
-.clan-nick {
-    color: beige;
-    font-weight: 500;
-    cursor: pointer;
-    text-overflow: ellipsis;
-    overflow: hidden;
-}
-
-        /* Styl poziomu i profesji */
         .clan-lvl-box { font-size: 10px; flex-shrink: 0; display: flex; gap: 1px; }
         .clan-lvl { color: #0f0; }
-        .clan-prof { font-weight: bold;     text-transform: capitalize; }
-
-        /* Kolory profesji */
-        .prof-w { color: beige; } /* Wojownik */
-        .prof-m { color: beige; } /* Mag */
-        .prof-p { color: beige; } /* Paladyn */
-        .prof-t { color: beige; } /* Tancerz Ostrzy */
-        .prof-h { color: beige; } /* Łowca */
-        .prof-b { color: beige; } /* Tropiciel */
+        .clan-prof { font-weight: bold; text-transform: capitalize; }
+        .prof-w, .prof-m, .prof-p, .prof-t, .prof-h, .prof-b { color: beige; }
 
         .clan-map {
             color: #aaa;
@@ -92,7 +66,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 130px;
+            max-width: 110px;
         }
     `;
 
@@ -102,7 +76,6 @@
 
     const panel = document.createElement("div");
     panel.id = "clan-pro-panel";
-
     const savedPos = JSON.parse(localStorage.getItem('clan_panel_pos') || '{"top":"150px","left":"10px"}');
     panel.style.top = savedPos.top;
     panel.style.left = savedPos.left;
@@ -143,8 +116,12 @@
         let html = "";
         let count = 0;
         const myNick = window.Engine?.hero?.d?.nick || window.g?.hero?.d?.nick;
+        
+        // Pobieranie ID członków aktualnej grupy
+        const partyMembers = window.g?.party ? Object.values(window.g.party).map(m => m.id) : [];
 
         for (let i = 0; i < members.length; i += 11) {
+            const id = members[i];
             const nick = members[i + 1];
             const lvl = members[i + 2];
             const prof = members[i + 4] ? members[i + 4].toLowerCase() : '';
@@ -153,9 +130,14 @@
 
             if (status === 0 && nick && nick !== myNick) {
                 count++;
+                // Sprawdzanie czy gracz jest w party
+                const isInParty = partyMembers.includes(id);
+                const partyBtn = isInParty ? '' : `<span class="clan-party-inv" onclick="window._g('party&a=inv&id=${id}')" title="Zaproś do grupy">[+]</span>`;
+
                 html += `
                     <div class="clan-member-row">
                         <div class="clan-member-left">
+                            ${partyBtn}
                             <span class="clan-nick" onclick="window.g.chat.setMsg('@${nick} ')">${nick} • </span>
                             <div class="clan-lvl-box">
                                 <span class="clan-lvl">${lvl}</span><span class="clan-prof prof-${prof}">${prof}</span>
