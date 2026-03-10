@@ -131,21 +131,6 @@
         document.getElementById('clan-count').innerText = count;
     }
 
-    const originalParseJSON = JSON.parse;
-    JSON.parse = function() {
-        const data = originalParseJSON.apply(this, arguments);
-
-        if (data && data.members) {
-            parseMembers(data.members);
-        }
-
-        if (data && data.clan && data.clan.members) {
-            parseMembers(data.clan.members);
-        }
-
-        return data;
-    };
-
     if (window.Engine && window.Engine.communication && window.Engine.communication.dispatcher) {
         const oldOnMembers = window.Engine.communication.dispatcher.on_members;
         window.Engine.communication.dispatcher.on_members = function(e) {
