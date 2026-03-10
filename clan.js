@@ -131,14 +131,17 @@
         document.getElementById('clan-count').innerText = count;
     }
 
+    // --- NAJBARDZIEJ UNIWERSALNA INTEGRACJA (NASŁUCH SIECIOWY) ---
     const originalParseJSON = JSON.parse;
     JSON.parse = function() {
         const data = originalParseJSON.apply(this, arguments);
 
+        // Sprawdzamy, czy w jakimkolwiek pakiecie danych z serwera jest klucz 'members'
         if (data && data.members) {
             parseMembers(data.members);
         }
 
+        // Alternatywnie sprawdzamy strukturę klanu wewnątrz pakietu
         if (data && data.clan && data.clan.members) {
             parseMembers(data.clan.members);
         }
@@ -146,6 +149,7 @@
         return data;
     };
 
+    // Dodatkowo trzymamy dispatcher jako zapas
     if (window.Engine && window.Engine.communication && window.Engine.communication.dispatcher) {
         const oldOnMembers = window.Engine.communication.dispatcher.on_members;
         window.Engine.communication.dispatcher.on_members = function(e) {
