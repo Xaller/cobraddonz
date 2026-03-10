@@ -1,14 +1,6 @@
-// ==UserScript==
-// @name         Clan Panel Pro - Full Version
-// @version      2026-03-10
-// @match        https://thantos.margonem.pl/
-// @grant        none
-// ==/UserScript==
-
 (function () {
     'use strict';
 
-    // --- TWOJA KONFIGURACJA MAP ---
     const MAP_CONFIG = {
         "Sala Mroźnych Strzał": "Furion",
         "Potępione Zamczysko - pracownia": "Sybilka",
@@ -70,7 +62,6 @@
     const panel = document.createElement("div");
     panel.id = "clan-pro-panel";
 
-    // Odczyt zapisanej pozycji i stanu zwinięcia
     const savedPos = JSON.parse(localStorage.getItem('clan_panel_pos') || '{"top":"150px","left":"10px"}');
     const isMinimized = localStorage.getItem('clan_panel_minimized') === 'true';
     
@@ -88,14 +79,12 @@
     `;
     document.body.appendChild(panel);
 
-    // --- LOGIKA ZWIJANIA (Z ZAPISEM) ---
     document.getElementById('clan-pro-toggle').onclick = () => {
         panel.classList.toggle('minimized');
         const currentState = panel.classList.contains('minimized');
         localStorage.setItem('clan_panel_minimized', currentState);
     };
 
-    // --- DRAG & DROP ---
     let isDragging = false;
     let offsetX, offsetY;
     document.getElementById('clan-pro-header').onmousedown = (e) => {
@@ -116,7 +105,6 @@
         }
     };
 
-    // --- PARSOWANIE ---
     function parseMembers(members) {
         if (!members) return;
         let html = "";
@@ -133,7 +121,6 @@
             if (status === 0 && nick && nick !== myNick) {
                 count++;
                 
-                // Grupowanie map do stopki
                 if (MAP_CONFIG[map]) {
                     const alias = MAP_CONFIG[map];
                     if (!mapStats[alias]) mapStats[alias] = [];
@@ -154,7 +141,6 @@
             }
         }
 
-        // Renderowanie tagów w stopce
         let footerHtml = "";
         for (const [alias, nicks] of Object.entries(mapStats)) {
             footerHtml += `<span class="footer-tag" title="${nicks.join(', ')}">[${alias} ${nicks.length}]</span>`;
@@ -165,7 +151,6 @@
         document.getElementById('clan-count').innerText = count;
     }
 
-    // --- KOMUNIKACJA I BLOKOWANIE OKIEN ---
     let isSilentUpdate = false;
     const originalG = window._g;
 
@@ -212,7 +197,6 @@
 
     document.getElementById('clan-pro-refresh').onclick = refreshClan;
     
-    // Interwał 30s dla stabilności, pierwsze odświeżenie po 2s
     setInterval(refreshClan, 30000); 
     setTimeout(refreshClan, 2000);
 })();
