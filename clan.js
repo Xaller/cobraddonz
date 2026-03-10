@@ -24,19 +24,23 @@
     // --- STYLE ---
     const style = document.createElement('style');
     style.innerHTML = `
-        #clan-active-window {
-            position: absolute;
-            top: ${savedPos.top};
-            left: ${savedPos.left};
-            width: 250px; background: rgba(0,0,0,.7);
-            box-shadow: 0 0 0 1px #010101,0 0 0 2px #5600b4,0 0 0 3px #0c0d0d,2px 2px 3px 3px #0c0d0d66;
-            color: #eee;
-            z-index: 9999; font-family: Tahoma, sans-serif; font-size: 11px;
-            border-radius: 2px;  display: flex; flex-direction: column;
-            backdrop-filter: blur(1px);
-        }
+#clan-active-window {
+    position: absolute;
+    top: 97px;
+    left: 1644px;
+    width: 250px;
+    background: rgba(0,0,0,.7);
+    box-shadow: 0 0 0 1px #010101, 0 0 0 2px #5600b4, 0 0 0 3px #0c0d0d, 2px 2px 3px 3px #0c0d0d66;
+    color: #eee;
+    z-index: 9999;
+    font-family: Tahoma, sans-serif;
+    font-size: 11px;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+}
 #clan-active-header {
-    background: rgb(0 0 0 / 6%);
+    background: rgb(0 0 0 / 47%);
     padding: 3px;
     font-weight: bold;
     text-align: center;
@@ -117,9 +121,9 @@
 #clan-active-footer {
     padding: 1px 0px;
     border-top: 1px solid #5600b4;
-    background: rgba(0,0,0,.7);
+    background: rgb(0 0 0 / 49%);
     font-size: 10px;
-    color: #a34fff;
+    color: #40cf40;
     font-weight: bold;
     font-family: 'Karla';
     display: flex;
