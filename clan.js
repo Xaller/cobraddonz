@@ -60,7 +60,7 @@
         <div id="clan-pro-header">
             <b id="clan-pro-toggle">Panel Klanowy (<span id="clan-count">0</span>)</b>
         </div>
-        <div id="clan-pro-content">Oczekiwanie na dane (otwórz okno klanu)...</div>
+        <div id="clan-pro-content">Otwórz okno klanu (K), aby wczytać dane...</div>
         <div id="clan-pro-footer"></div>
     `;
     document.body.appendChild(panel);
@@ -70,7 +70,6 @@
         localStorage.setItem('clan_panel_minimized', panel.classList.contains('minimized'));
     };
 
-    // Obsługa przeciągania
     let isDragging = false, offsetX, offsetY;
     document.getElementById('clan-pro-header').onmousedown = (e) => {
         isDragging = true;
@@ -90,10 +89,10 @@
     };
 
     function parseMembers(members) {
-        if (!members) return;
+        if (!members || !Array.isArray(members)) return;
         let html = "";
         let count = 0;
-        const myNick = window.Engine?.hero?.d?.nick;
+        const myNick = window.Engine?.hero?.d?.nick || window.g?.hero?.d?.nick;
         const partyMembers = window.g?.party ? Object.values(window.g.party).map(m => m.id) : [];
         const mapStats = {};
 
@@ -132,19 +131,27 @@
         document.getElementById('clan-count').innerText = count;
     }
 
-    // --- INTEGRACJA Z DISPATCHEREM ---
-    (function (onMembers) {
-        window.Engine.communication.dispatcher.on_members = function (e) {
-            // Wywołaj oryginalną funkcję, aby okno klanu nadal działało
-            const result = onMembers.call(this, e);
-            
-            // Przekaż otrzymane dane do naszego panelu
-            if (e && e.members) {
-                parseMembers(e.members);
-            }
-            
-            return result;
-        };
-    })(window.Engine.communication.dispatcher.on_members);
+    // --- POPRAWIONA INTEGRACJA ---
+    // Nasłuchujemy na zmiany w obiekcie klanu bezpośrednio w silniku gry
+    const originalOnMembers = window.Engine.communication.dispatcher.on_members;
+    window.Engine.communication.dispatcher.on_members = function (e) {
+        const res = originalOnMembers.apply(this, arguments);
+        
+        // Próbujemy pobrać dane z trzech możliwych miejsc (zależnie od wersji gry)
+        const membersData = e?.members || window.Engine?.clan?.members || window.g?.clan?.members;
+        
+        if (membersData) {
+            parseMembers(membersData);
+        }
+        return res;
+    };
+
+    // Dodatkowy "bezpiecznik" - sprawdza dane co kilka sekund, jeśli już są w pamięci
+    setInterval(() => {
+        const members = window.Engine?.clan?.members || window.g?.clan?.members;
+        if (members && document.getElementById('clan-count').innerText === "0") {
+            parseMembers(members);
+        }
+    }, 3000);
 
 })();
