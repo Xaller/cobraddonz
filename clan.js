@@ -22,34 +22,26 @@
             cursor: move;
         }
         #clan-pro-header b { color: #a654ff; cursor: pointer; user-select: none; }
-        #clan-pro-refresh { cursor: pointer; color: #9f62e1; font-size: 14px; transition: 0.2s; }
-        #clan-pro-refresh:hover { transform: rotate(90deg); color: #fff; }
-
         #clan-pro-content { 
             padding: 5px; overflow-y: auto; max-height: 350px; 
             border-bottom: 1px solid #5600b4;
         }
-        
         #clan-pro-footer {
             padding: 4px 10px; font-size: 10px; display: flex; 
-            flex-wrap: wrap; gap: 5px; background: #00000080;
-            min-height: 15px;
+            flex-wrap: wrap; gap: 5px; background: #00000080; min-height: 15px;
         }
-        
         .footer-tag { color: #994bff; cursor: help; font-weight: bold; }
         .clan-member-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
         .clan-nick { color: beige; cursor: pointer; letter-spacing: 1px; }
         .clan-party-inv { color: #5600b4; cursor: pointer; font-weight: bold; margin-right: 4px; }
         .clan-party-inv:hover { color: #fff; transition: 0.15s; }
         .clan-lvl { color: #0f0; margin-right: 2px; }
-        
         .clan-map {
             color: beige; font-size: 10px; text-align: right;
             overflow: hidden; text-overflow: ellipsis;
             white-space: nowrap; max-width: 110px; letter-spacing: 1px;
         }
-        .minimized #clan-pro-content { display: none; }
-        .minimized #clan-pro-panel { max-height: unset; }
+        .minimized #clan-pro-content, .minimized #clan-pro-footer { display: none; }
     `;
 
     const styleSheet = document.createElement("style");
@@ -58,10 +50,8 @@
 
     const panel = document.createElement("div");
     panel.id = "clan-pro-panel";
-
     const savedPos = JSON.parse(localStorage.getItem('clan_panel_pos') || '{"top":"150px","left":"10px"}');
     const isMinimized = localStorage.getItem('clan_panel_minimized') === 'true';
-    
     panel.style.top = savedPos.top;
     panel.style.left = savedPos.left;
     if (isMinimized) panel.classList.add('minimized');
@@ -69,9 +59,8 @@
     panel.innerHTML = `
         <div id="clan-pro-header">
             <b id="clan-pro-toggle">Panel Klanowy (<span id="clan-count">0</span>)</b>
-            <span id="clan-pro-refresh" title="Odśwież dane z gry">↻</span>
         </div>
-        <div id="clan-pro-content">Oczekiwanie na dane klanowe...</div>
+        <div id="clan-pro-content">Oczekiwanie na dane (otwórz okno klanu)...</div>
         <div id="clan-pro-footer"></div>
     `;
     document.body.appendChild(panel);
@@ -81,10 +70,9 @@
         localStorage.setItem('clan_panel_minimized', panel.classList.contains('minimized'));
     };
 
-    // Przeciąganie panelu
+    // Obsługa przeciągania
     let isDragging = false, offsetX, offsetY;
     document.getElementById('clan-pro-header').onmousedown = (e) => {
-        if(e.target.id === 'clan-pro-refresh') return;
         isDragging = true;
         offsetX = e.clientX - panel.offsetLeft;
         offsetY = e.clientY - panel.offsetTop;
@@ -102,10 +90,10 @@
     };
 
     function parseMembers(members) {
-        if (!members || !Array.isArray(members)) return;
+        if (!members) return;
         let html = "";
         let count = 0;
-        const myNick = window.Engine?.hero?.d?.nick || window.g?.hero?.d?.nick;
+        const myNick = window.Engine?.hero?.d?.nick;
         const partyMembers = window.g?.party ? Object.values(window.g.party).map(m => m.id) : [];
         const mapStats = {};
 
@@ -121,10 +109,8 @@
                     if (!mapStats[alias]) mapStats[alias] = [];
                     mapStats[alias].push(nick);
                 }
-
                 const isInParty = partyMembers.includes(id);
                 const partyBtn = isInParty ? '' : `<span class="clan-party-inv" onclick="window._g('party&a=inv&id=${id}')" title="Zaproś">[+]</span>`;
-
                 html += `
                     <div class="clan-member-row">
                         <div class="clan-member-left">
@@ -146,18 +132,19 @@
         document.getElementById('clan-count').innerText = count;
     }
 
-    function refreshData() {
-        // Pobieramy dane bezpośrednio z obiektu gry, jeśli tam są
-        const members = window.g?.clan?.members;
-        if (members) {
-            parseMembers(members);
-        } else {
-            document.getElementById('clan-pro-content').innerHTML = '<span style="color:#888">Otwórz okno klanu (K), aby wczytać dane</span>';
-        }
-    }
+    // --- INTEGRACJA Z DISPATCHEREM ---
+    (function (onMembers) {
+        window.Engine.communication.dispatcher.on_members = function (e) {
+            // Wywołaj oryginalną funkcję, aby okno klanu nadal działało
+            const result = onMembers.call(this, e);
+            
+            // Przekaż otrzymane dane do naszego panelu
+            if (e && e.members) {
+                parseMembers(e.members);
+            }
+            
+            return result;
+        };
+    })(window.Engine.communication.dispatcher.on_members);
 
-    document.getElementById('clan-pro-refresh').onclick = refreshData;
-    
-    // Sprawdzaj co 5 sekund, czy w grze pojawiły się nowe dane (np. po otwarciu okna klanu przez gracza)
-    setInterval(refreshData, 5000);
 })();
