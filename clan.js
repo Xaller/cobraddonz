@@ -37,7 +37,6 @@
         }
         
         .footer-tag { color: #994bff; cursor: help; font-weight: bold; }
-
         .clan-member-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
         .clan-nick { color: beige; cursor: pointer; letter-spacing: 1px; }
         .clan-party-inv { color: #5600b4; cursor: pointer; font-weight: bold; margin-right: 4px; }
@@ -49,8 +48,6 @@
             overflow: hidden; text-overflow: ellipsis;
             white-space: nowrap; max-width: 110px; letter-spacing: 1px;
         }
-
-        /* Klasa minimalizacji */
         .minimized #clan-pro-content { display: none; }
         .minimized #clan-pro-panel { max-height: unset; }
     `;
@@ -71,22 +68,21 @@
 
     panel.innerHTML = `
         <div id="clan-pro-header">
-            <b id="clan-pro-toggle">Cwele Online (<span id="clan-count">0</span>)</b>
-            <span id="clan-pro-refresh" title="Odśwież">↻</span>
+            <b id="clan-pro-toggle">Panel Klanowy (<span id="clan-count">0</span>)</b>
+            <span id="clan-pro-refresh" title="Odśwież dane z gry">↻</span>
         </div>
-        <div id="clan-pro-content">Wczytywanie...</div>
+        <div id="clan-pro-content">Oczekiwanie na dane klanowe...</div>
         <div id="clan-pro-footer"></div>
     `;
     document.body.appendChild(panel);
 
     document.getElementById('clan-pro-toggle').onclick = () => {
         panel.classList.toggle('minimized');
-        const currentState = panel.classList.contains('minimized');
-        localStorage.setItem('clan_panel_minimized', currentState);
+        localStorage.setItem('clan_panel_minimized', panel.classList.contains('minimized'));
     };
 
-    let isDragging = false;
-    let offsetX, offsetY;
+    // Przeciąganie panelu
+    let isDragging = false, offsetX, offsetY;
     document.getElementById('clan-pro-header').onmousedown = (e) => {
         if(e.target.id === 'clan-pro-refresh') return;
         isDragging = true;
@@ -106,7 +102,7 @@
     };
 
     function parseMembers(members) {
-        if (!members) return;
+        if (!members || !Array.isArray(members)) return;
         let html = "";
         let count = 0;
         const myNick = window.Engine?.hero?.d?.nick || window.g?.hero?.d?.nick;
@@ -120,7 +116,6 @@
 
             if (status === 0 && nick && nick !== myNick) {
                 count++;
-                
                 if (MAP_CONFIG[map]) {
                     const alias = MAP_CONFIG[map];
                     if (!mapStats[alias]) mapStats[alias] = [];
@@ -146,57 +141,23 @@
             footerHtml += `<span class="footer-tag" title="${nicks.join(', ')}">[${alias} ${nicks.length}]</span>`;
         }
 
-        document.getElementById('clan-pro-content').innerHTML = html || '<span style="color:#888">Brak cweli online</span>';
+        document.getElementById('clan-pro-content').innerHTML = html || '<span style="color:#888">Brak osób online</span>';
         document.getElementById('clan-pro-footer').innerHTML = footerHtml;
         document.getElementById('clan-count').innerText = count;
     }
 
-    let isSilentUpdate = false;
-    const originalG = window._g;
-
-    window._g = function(task, callback) {
-        if (isSilentUpdate && (task.includes("a=myclan") || task.includes("a=members"))) {
-            return originalG.call(this, task, function(data) {
-                if (data && data.members) parseMembers(data.members);
-                if (typeof callback === 'function') callback(data);
-            });
+    function refreshData() {
+        // Pobieramy dane bezpośrednio z obiektu gry, jeśli tam są
+        const members = window.g?.clan?.members;
+        if (members) {
+            parseMembers(members);
+        } else {
+            document.getElementById('clan-pro-content').innerHTML = '<span style="color:#888">Otwórz okno klanu (K), aby wczytać dane</span>';
         }
-        return originalG.apply(this, arguments);
-    };
-
-    const observer = new MutationObserver((mutations) => {
-        if (isSilentUpdate) {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        if (node.classList.contains('border-window') || node.classList.contains('ni-win-clan') || node.id === 'window-clan') {
-                           if (node.innerText.includes('Klan') || node.innerText.includes('Członkowie')) {
-                               node.style.display = 'none';
-                               setTimeout(() => node.remove(), 5);
-                           }
-                        }
-                    }
-                });
-            });
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    function refreshClan() {
-        const hasClan = window.Engine?.hero?.d?.clan || window.g?.hero?.d?.clan;
-        if (!hasClan) return;
-
-        isSilentUpdate = true;
-        window._g("clan&a=myclan");
-
-        setTimeout(() => {
-            window._g("clan&a=members");
-            setTimeout(() => { isSilentUpdate = false; }, 2000);
-        }, 400);
     }
 
-    document.getElementById('clan-pro-refresh').onclick = refreshClan;
+    document.getElementById('clan-pro-refresh').onclick = refreshData;
     
-    setInterval(refreshClan, 30000); 
-    setTimeout(refreshClan, 2000);
+    // Sprawdzaj co 5 sekund, czy w grze pojawiły się nowe dane (np. po otwarciu okna klanu przez gracza)
+    setInterval(refreshData, 5000);
 })();
