@@ -1,3 +1,10 @@
+// ==UserScript==
+// @name         Clan Panel Pro - Full Version
+// @version      2026-03-10
+// @match        https://thantos.margonem.pl/
+// @grant        none
+// ==/UserScript==
+
 (function () {
     'use strict';
 
@@ -22,33 +29,34 @@
             justify-content: space-between; align-items: center;
             cursor: move;
         }
-        #clan-pro-header b { color: #a654ff; cursor: pointer; }
-        #clan-pro-content { padding: 5px; overflow-y: auto; max-height: 350px; border-bottom: 1px solid #5600b4;}
+        #clan-pro-header b { color: #a654ff; cursor: pointer; user-select: none; }
+        #clan-pro-refresh { cursor: pointer; color: #9f62e1; font-size: 14px; transition: 0.2s; }
+        #clan-pro-refresh:hover { transform: rotate(90deg); color: #fff; }
+
+        #clan-pro-content { 
+            padding: 5px; overflow-y: auto; max-height: 350px; 
+            border-bottom: 1px solid #5600b4;
+        }
+        
         #clan-pro-footer {
-            padding: 4px 10px;
-            font-size: 10px; display: flex; flex-wrap: wrap; gap: 5px; background: #00000080;
+            padding: 4px 10px; font-size: 10px; display: flex; 
+            flex-wrap: wrap; gap: 5px; background: #00000080;
             min-height: 15px;
         }
-.footer-tag {
-    color: #994bff;
-    cursor: help;
-}
+        
+        .footer-tag { color: #994bff; cursor: help; font-weight: bold; }
 
         .clan-member-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
         .clan-nick { color: beige; cursor: pointer; letter-spacing: 1px; }
         .clan-party-inv { color: #5600b4; cursor: pointer; font-weight: bold; margin-right: 4px; }
-        .clan-party-inv:hover { color: #fff; }
+        .clan-party-inv:hover { color: #fff; transition: 0.15s; }
         .clan-lvl { color: #0f0; margin-right: 2px; }
-.clan-map {
-    color: beige;
-    font-size: 10px;
-    text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 110px;
-    letter-spacing: 1px;
-}
+        
+        .clan-map {
+            color: beige; font-size: 10px; text-align: right;
+            overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; max-width: 110px; letter-spacing: 1px;
+        }
 
         /* Klasa minimalizacji */
         .minimized #clan-pro-content { display: none; }
@@ -61,12 +69,14 @@
 
     const panel = document.createElement("div");
     panel.id = "clan-pro-panel";
+
+    // Odczyt zapisanej pozycji i stanu zwinięcia
     const savedPos = JSON.parse(localStorage.getItem('clan_panel_pos') || '{"top":"150px","left":"10px"}');
     const isMinimized = localStorage.getItem('clan_panel_minimized') === 'true';
-    if (isMinimized) panel.classList.add('minimized');
-
+    
     panel.style.top = savedPos.top;
     panel.style.left = savedPos.left;
+    if (isMinimized) panel.classList.add('minimized');
 
     panel.innerHTML = `
         <div id="clan-pro-header">
@@ -78,10 +88,11 @@
     `;
     document.body.appendChild(panel);
 
-    // --- LOGIKA ZWIJANIA ---
+    // --- LOGIKA ZWIJANIA (Z ZAPISEM) ---
     document.getElementById('clan-pro-toggle').onclick = () => {
         panel.classList.toggle('minimized');
-        localStorage.setItem('clan_panel_minimized', panel.classList.contains('minimized'));
+        const currentState = panel.classList.contains('minimized');
+        localStorage.setItem('clan_panel_minimized', currentState);
     };
 
     // --- DRAG & DROP ---
@@ -121,6 +132,8 @@
 
             if (status === 0 && nick && nick !== myNick) {
                 count++;
+                
+                // Grupowanie map do stopki
                 if (MAP_CONFIG[map]) {
                     const alias = MAP_CONFIG[map];
                     if (!mapStats[alias]) mapStats[alias] = [];
@@ -128,7 +141,7 @@
                 }
 
                 const isInParty = partyMembers.includes(id);
-                const partyBtn = isInParty ? '' : `<span class="clan-party-inv" onclick="window._g('party&a=inv&id=${id}')">[+]</span>`;
+                const partyBtn = isInParty ? '' : `<span class="clan-party-inv" onclick="window._g('party&a=inv&id=${id}')" title="Zaproś">[+]</span>`;
 
                 html += `
                     <div class="clan-member-row">
@@ -141,6 +154,7 @@
             }
         }
 
+        // Renderowanie tagów w stopce
         let footerHtml = "";
         for (const [alias, nicks] of Object.entries(mapStats)) {
             footerHtml += `<span class="footer-tag" title="${nicks.join(', ')}">[${alias} ${nicks.length}]</span>`;
@@ -151,11 +165,10 @@
         document.getElementById('clan-count').innerText = count;
     }
 
-    // --- BLOKOWANIE OKNA KLANU I KOMUNIKACJA ---
+    // --- KOMUNIKACJA I BLOKOWANIE OKIEN ---
     let isSilentUpdate = false;
     const originalG = window._g;
 
-    // Nadpisujemy _g, aby przechwycić dane
     window._g = function(task, callback) {
         if (isSilentUpdate && (task.includes("a=myclan") || task.includes("a=members"))) {
             return originalG.call(this, task, function(data) {
@@ -166,17 +179,15 @@
         return originalG.apply(this, arguments);
     };
 
-    // Observer usuwa okno gry, jeśli próbuje się pojawić podczas Silent Update
     const observer = new MutationObserver((mutations) => {
         if (isSilentUpdate) {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1) {
-                        // Sprawdzamy czy to okno klanu (SI lub NI)
                         if (node.classList.contains('border-window') || node.classList.contains('ni-win-clan') || node.id === 'window-clan') {
                            if (node.innerText.includes('Klan') || node.innerText.includes('Członkowie')) {
-                               node.style.display = 'none'; // Szybkie ukrycie
-                               setTimeout(() => node.remove(), 10); // Usunięcie
+                               node.style.display = 'none';
+                               setTimeout(() => node.remove(), 5);
                            }
                         }
                     }
@@ -193,15 +204,15 @@
         isSilentUpdate = true;
         window._g("clan&a=myclan");
 
-        // Wywołujemy pobranie członków chwilę później
         setTimeout(() => {
             window._g("clan&a=members");
-            // Po 2 sekundach wyłączamy tryb cichy, żeby gracz mógł sam otworzyć klan jeśli chce
             setTimeout(() => { isSilentUpdate = false; }, 2000);
-        }, 500);
+        }, 400);
     }
 
     document.getElementById('clan-pro-refresh').onclick = refreshClan;
-    setInterval(refreshClan, 10000); // Auto-odświeżanie co 45s
-    setTimeout(refreshClan, 2000);   // Pierwsze odświeżenie po zalogowaniu
+    
+    // Interwał 30s dla stabilności, pierwsze odświeżenie po 2s
+    setInterval(refreshClan, 30000); 
+    setTimeout(refreshClan, 2000);
 })();
