@@ -22,12 +22,12 @@
             cursor: move;
         }
         #clan-pro-header b { color: #a654ff; cursor: pointer; user-select: none; }
-        #clan-pro-content { 
-            padding: 5px; overflow-y: auto; max-height: 350px; 
+        #clan-pro-content {
+            padding: 5px; overflow-y: auto; max-height: 350px;
             border-bottom: 1px solid #5600b4;
         }
         #clan-pro-footer {
-            padding: 4px 10px; font-size: 10px; display: flex; 
+            padding: 4px 10px; font-size: 10px; display: flex;
             flex-wrap: wrap; gap: 5px; background: #00000080; min-height: 15px;
         }
         .footer-tag { color: #994bff; cursor: help; font-weight: bold; }
@@ -60,7 +60,7 @@
         <div id="clan-pro-header">
             <b id="clan-pro-toggle">Panel Klanowy (<span id="clan-count">0</span>)</b>
         </div>
-        <div id="clan-pro-content">Otwórz okno klanu (K), aby wczytać dane...</div>
+        <div id="clan-pro-content">Otwórz okno klanu (K)...</div>
         <div id="clan-pro-footer"></div>
     `;
     document.body.appendChild(panel);
@@ -92,13 +92,13 @@
         if (!members || !Array.isArray(members)) return;
         let html = "";
         let count = 0;
-        const myNick = window.Engine?.hero?.d?.nick || window.g?.hero?.d?.nick;
-        const partyMembers = window.g?.party ? Object.values(window.g.party).map(m => m.id) : [];
+        const myNick = window.Engine?.hero?.d?.nick || (window.g && window.g.hero && window.g.hero.d && window.g.hero.d.nick);
+        const partyMembers = window.g && window.g.party ? Object.values(window.g.party).map(m => m.id) : [];
         const mapStats = {};
 
         for (let i = 0; i < members.length; i += 11) {
             const id = members[i], nick = members[i + 1], lvl = members[i + 2],
-                  prof = members[i + 4]?.toLowerCase() || '', map = members[i + 5],
+                  prof = members[i + 4] ? members[i + 4].toLowerCase() : '', map = members[i + 5],
                   status = parseInt(members[i + 9]);
 
             if (status === 0 && nick && nick !== myNick) {
@@ -113,7 +113,7 @@
                 html += `
                     <div class="clan-member-row">
                         <div class="clan-member-left">
-                            ${partyBtn}<span class="clan-nick" onclick="window.g.chat.setMsg('@${nick} ')">${nick}</span>
+                            ${partyBtn}<span class="clan-nick" onclick="if(window.g && window.g.chat) window.g.chat.setMsg('@${nick} ')">${nick}</span>
                             <span style="margin-left:4px; opacity:0.6">[<span class="clan-lvl">${lvl}</span>${prof}]</span>
                         </div>
                         <span class="clan-map" title="${map}">${map}</span>
@@ -131,27 +131,27 @@
         document.getElementById('clan-count').innerText = count;
     }
 
-    // --- POPRAWIONA INTEGRACJA ---
-    // Nasłuchujemy na zmiany w obiekcie klanu bezpośrednio w silniku gry
-    const originalOnMembers = window.Engine.communication.dispatcher.on_members;
-    window.Engine.communication.dispatcher.on_members = function (e) {
-        const res = originalOnMembers.apply(this, arguments);
-        
-        // Próbujemy pobrać dane z trzech możliwych miejsc (zależnie od wersji gry)
-        const membersData = e?.members || window.Engine?.clan?.members || window.g?.clan?.members;
-        
-        if (membersData) {
-            parseMembers(membersData);
+    const originalParseJSON = JSON.parse;
+    JSON.parse = function() {
+        const data = originalParseJSON.apply(this, arguments);
+
+        if (data && data.members) {
+            parseMembers(data.members);
         }
-        return res;
+
+        if (data && data.clan && data.clan.members) {
+            parseMembers(data.clan.members);
+        }
+
+        return data;
     };
 
-    // Dodatkowy "bezpiecznik" - sprawdza dane co kilka sekund, jeśli już są w pamięci
-    setInterval(() => {
-        const members = window.Engine?.clan?.members || window.g?.clan?.members;
-        if (members && document.getElementById('clan-count').innerText === "0") {
-            parseMembers(members);
-        }
-    }, 3000);
+    if (window.Engine && window.Engine.communication && window.Engine.communication.dispatcher) {
+        const oldOnMembers = window.Engine.communication.dispatcher.on_members;
+        window.Engine.communication.dispatcher.on_members = function(e) {
+            if (e && e.members) parseMembers(e.members);
+            return oldOnMembers.apply(this, arguments);
+        };
+    }
 
 })();
