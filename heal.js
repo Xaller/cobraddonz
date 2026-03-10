@@ -39,7 +39,6 @@
 
                 if (window.useItemById) window.useItemById(potId);
                 else if (window.Engine.items && window.Engine.items.use) window.Engine.items.use(potId);
-                else window._g(`moveitem&st=1&id=${potId}`);
 
                 setTimeout(() => { lock = false; }, 200);
             }
