@@ -28,7 +28,7 @@
     position: absolute;
     top: 97px;
     left: 1644px;
-    width: 250px;
+    width: 271px;
     background: rgba(0,0,0,.7);
     box-shadow: 0 0 0 1px #010101, 0 0 0 2px #5600b4, 0 0 0 3px #0c0d0d, 2px 2px 3px 3px #0c0d0d66;
     color: #eee;
@@ -62,7 +62,7 @@
         }
         .clan-member-row {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 3px 5px; border-bottom: 1px solid #5600b4;
+            padding: 3px 5px;
         }
         .party-inv-btn {
             color: beige;
