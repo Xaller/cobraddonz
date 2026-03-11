@@ -65,8 +65,6 @@
             padding: 3px 5px; border-bottom: 1px solid #5600b4;
         }
         .party-inv-btn {
-            background-image: linear-gradient(to top, #12210d, #396b29);
-            box-shadow: inset 0 0 1px 1px #cecece, inset 0 0 0 2px #0c0d0d;
             color: beige;
             width: 14px;
             height: 14px;
@@ -233,7 +231,7 @@
         } else {
             listCont.innerHTML = activeOnes.map(m => `
                 <div class="clan-member-row">
-                    <div class="party-inv-btn" onclick="inviteToParty(${m.id})" title="Zaproś do grupy">+</div>
+                    <div class="party-inv-btn" onclick="inviteToParty(${m.id})" title="Zaproś do grupy">[+]</div>
                     <span class="clan-nick" title="${m.nick}">${m.nick}</span>
                     <span class="clan-info-tag">${m.lvl}${m.prof}</span>
                     <span class="clan-map" title="${m.mapa}">${m.mapa}</span>
